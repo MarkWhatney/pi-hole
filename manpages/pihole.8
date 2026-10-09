@@ -27,6 +27,8 @@ pihole -r
 .br
 \fBpihole\fR \fB-l\fR (\fBon|off|off noflush\fR)
 .br
+\fBpihole cyrillic\fR (\fBon|off|status|check\fR domain)
+.br
 \fBpihole -up \fR[--check-only]
 .br
 \fBpihole -v\fR
@@ -154,6 +156,25 @@ Available commands and options:
                         /var/log/pihole/pihole.log
 .br
       off noflush       Disable the Pi-hole log at /var/log/pihole/pihole.log
+.br
+
+\fBcyrillic\fR [on|off|status|check domain]
+.br
+    Block domains that contain Cyrillic characters. Disabled by default.
+    The setting is stored as dns.blocking.cyrillic. FTL must implement
+    that key before 'on' or 'off' can succeed and before queries are blocked.
+.br
+
+    (Cyrillic options):
+.br
+      on, enable        Enable Cyrillic domain blocking
+.br
+      off, disable      Disable Cyrillic domain blocking
+.br
+      status            Show the effective state
+.br
+      check domain      Report whether a domain contains Cyrillic characters.
+                        Accepts Unicode and punycode (xn--). Exit 0 on a match.
 .br
 
 \fB-up, updatePihole\fR [--check-only]

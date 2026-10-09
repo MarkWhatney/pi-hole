@@ -298,6 +298,91 @@ Options:
   echo -e "${OVER}  ${TICK} ${str}"
 }
 
+cyrillicNeedsRoot() {
+  case "${1:-}" in
+    on|off|true|false|enable|disable) need_root=true ;;
+  esac
+}
+
+cyrillicFunc() {
+  local action domain rc
+  shift
+
+  # shellcheck source=advanced/Scripts/cyrillic.sh
+  source "${PI_HOLE_SCRIPT_DIR}/cyrillic.sh"
+
+  action="${1:-}"
+  case "${action}" in
+    ""|"-h"|"--help"|"help")
+      cat <<'EOF'
+Usage: pihole cyrillic [on|off|status|check <domain>]
+Example: 'pihole cyrillic status'
+Opt-in blocking of domains that contain Cyrillic characters
+
+The option is disabled by default. 'on' and 'off' store dns.blocking.cyrillic
+through pihole-FTL. Stock FTL does not know that key yet, so those commands
+fail and leave blocking unchanged until FTL implements it. 'check' runs
+locally and does not change settings.
+
+Detection decodes punycode (xn--) labels and also accepts raw UTF-8.
+A match is any code point in the Cyrillic Unicode blocks
+U+0400-U+04FF, U+0500-U+052F, U+2DE0-U+2DFF, U+A640-U+A69F, or U+1C80-U+1C8F.
+
+Options:
+  on, enable          Enable Cyrillic domain blocking
+  off, disable        Disable Cyrillic domain blocking
+  status              Show the effective state (unknown FTL means disabled)
+  check <domain>      Print whether the domain contains Cyrillic characters
+                      Exit 0 on a match, 1 when there is no match, 2 on usage error
+
+See docs/cyrillic-blocking.md for the FTL and web interface work this depends on.
+EOF
+      exit 0
+      ;;
+    on|enable|true)
+      if cyrillic_blocking_set true; then
+        exit 0
+      fi
+      exit 1
+      ;;
+    off|disable|false)
+      if cyrillic_blocking_set false; then
+        exit 0
+      fi
+      exit 1
+      ;;
+    status)
+      cyrillic_blocking_status
+      exit 0
+      ;;
+    check)
+      shift
+      domain="${1:-}"
+      if [ -z "${domain}" ] || [ "$#" -gt 1 ]; then
+        echo "Usage: pihole cyrillic check <domain>"
+        exit 2
+      fi
+      domain_contains_cyrillic "${domain}"
+      rc=$?
+      if [ "${rc}" -eq 0 ]; then
+        printf '%s\n' "${domain} contains Cyrillic characters."
+        exit 0
+      fi
+      if [ "${rc}" -eq 2 ]; then
+        echo "Usage: pihole cyrillic check <domain>"
+        exit 2
+      fi
+      printf '%s\n' "${domain} has no Cyrillic characters."
+      exit 1
+      ;;
+    *)
+      echo -e "  ${COL_RED}Invalid option${COL_NC}"
+      echo "  Try 'pihole cyrillic --help' for more information."
+      exit 1
+      ;;
+  esac
+}
+
 analyze_ports() {
   local lv4 lv6 port=${1}
   # FTL is listening at least on at least one port when this
@@ -394,7 +479,7 @@ tailFunc() {
   # Color everything else as gray
   tail -f $LOGFILE | grep --line-buffered -- "${1}" | sed -E \
     -e "s,($(date +'%b %d ')| dnsmasq\[[0-9]*\]),,g" \
-    -e "s,(.*(denied |gravity blocked ).*),${COL_RED}&${COL_NC}," \
+    -e "s,(.*(denied |gravity blocked |cyrillic blocked ).*),${COL_RED}&${COL_NC}," \
     -e "s,.*(query\\[A|DHCP).*,${COL_NC}&${COL_NC}," \
     -e "s,.*,${COL_GRAY}&${COL_NC},"
   exit 0
@@ -500,6 +585,8 @@ Options:
   -h, --help, help    Show this help dialog
   -l, logging         Specify whether the Pi-hole log should be used
                         Add '-h' for more info on logging usage
+  cyrillic            Block domains that contain Cyrillic characters
+                        Disabled by default. Add '-h' for more info
   -q, query           Query the adlists for a specified domain
                         Add '-h' for more info on query usage
   -up, updatePihole   Update Pi-hole subsystems
@@ -558,6 +645,7 @@ case "${1}" in
   "updatechecker"                 ) need_root=true;;
   "networkflush"                  ) need_root=true;;
   "-t" | "tail"                   ) need_root=true;;
+  "cyrillic"                      ) cyrillicNeedsRoot "$2";;
   *                               ) helpFunc;;
 esac
 
@@ -592,5 +680,6 @@ case "${1}" in
   "updatechecker"                 ) shift; updateCheckFunc "$@";;
   "networkflush"                  ) networkFlush "$@";;
   "-t" | "tail"                   ) tailFunc "$2";;
+  "cyrillic"                      ) cyrillicFunc "$@";;
   *                               ) helpFunc;;
 esac
