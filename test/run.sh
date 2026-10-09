@@ -98,6 +98,7 @@ SUITE_1=(
     test_installer_ftl.bats
     test_network.bats
     test_utils.bats
+    test_cyrillic.bats
     test_gravity.bats
 )
 [[ "${DISTRO_FAMILY}" == "rhel" ]] && SUITE_1+=(test_selinux.bats)

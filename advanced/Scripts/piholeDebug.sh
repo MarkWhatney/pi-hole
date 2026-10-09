@@ -1210,12 +1210,24 @@ analyze_pihole_log() {
   echo_current_diagnostic "Pi-hole log"
   local pihole_log_permissions
   local queryLogging
+  local cyrillic_blocking
+  local cyrillic_err=0
 
   queryLogging="$(get_ftl_conf_value "dns.queryLogging")"
   if [[ "${queryLogging}" == "false" ]]; then
       # Inform user that logging has been disabled and pihole.log does not contain queries
       log_write "${INFO} Query logging is disabled"
       log_write ""
+  fi
+
+  # Stock FTL does not know this key yet. A failed read means the feature is off.
+  cyrillic_blocking="$(pihole-FTL --config -q dns.blocking.cyrillic 2>/dev/null)" || cyrillic_err=$?
+  if [[ "${cyrillic_err}" -eq 0 && "${cyrillic_blocking}" == "true" ]]; then
+      log_write "${INFO} Cyrillic domain blocking (dns.blocking.cyrillic) is enabled"
+  elif [[ "${cyrillic_err}" -eq 0 && "${cyrillic_blocking}" == "false" ]]; then
+      log_write "${INFO} Cyrillic domain blocking (dns.blocking.cyrillic) is disabled"
+  else
+      log_write "${INFO} Cyrillic domain blocking (dns.blocking.cyrillic) is disabled (not available in this FTL build)"
   fi
 
   pihole_log_permissions=$(ls -lhd "${PIHOLE_LOG}")

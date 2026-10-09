@@ -11,7 +11,7 @@ _pihole() {
 
     case "${prev}" in
         "pihole")
-            opts="allow allow-regex allow-wild deny checkout debug disable enable flush help logging query repair regex reloaddns reloadlists setpassword status tail uninstall updateGravity updatePihole version wildcard networkflush api"
+            opts="allow allow-regex allow-wild deny checkout cyrillic debug disable enable flush help logging query repair regex reloaddns reloadlists setpassword status tail uninstall updateGravity updatePihole version wildcard networkflush api"
             mapfile -t COMPREPLY < <(compgen -W "${opts}" -- "${cur}")
         ;;
         "allow"|"deny"|"wildcard"|"regex"|"allow-regex"|"allow-wild")
@@ -29,6 +29,10 @@ _pihole() {
         "logging")
             opts_logging="on off 'off noflush'"
             mapfile -t COMPREPLY < <(compgen -W "${opts_logging}" -- "${cur}")
+        ;;
+        "cyrillic")
+            opts_cyrillic="on off status check enable disable --help"
+            mapfile -t COMPREPLY < <(compgen -W "${opts_cyrillic}" -- "${cur}")
         ;;
         "query")
             opts_query="--partial --all"
